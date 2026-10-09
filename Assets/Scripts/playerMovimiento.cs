@@ -8,7 +8,7 @@ public class playerMovimiento : MonoBehaviour
     [SerializeField] private Transform camara;
 
     [Header("Movimiento")]
-    [SerializeField] private float velocidadMovimiento = 10f;
+    [SerializeField] public float velocidadMovimiento = 10f;
     [SerializeField] private float fuerzaSalto = 6f;
     [SerializeField] private float gravedad = -9f;
     [SerializeField] private int maxSaltos = 2;

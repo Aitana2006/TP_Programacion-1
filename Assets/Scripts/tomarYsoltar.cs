@@ -9,6 +9,10 @@ public class tomarYsoltar : MonoBehaviour
     private GameObject pickObjet = null;
     private Camera cam;
 
+    // Guardamos el estado original del Rigidbody
+    private bool rbTeniaGravedad;
+    private bool rbEraKinematic;
+
     void Start()
     {
         // 1. Busca la camara del jugador
@@ -26,18 +30,25 @@ public class tomarYsoltar : MonoBehaviour
 
     void Update()
     {
-        // Soltar con la tecla 'R' (o 'E' si ya lo tienes agarrado)
+        // Soltar con la tecla 'R' o 'E'
         if (pickObjet != null)
         {
             if (Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.E))
             {
                 SoltarObjeto();
             }
+
+            // Mantener el objeto en la mano mientras lo llevamos
+            if (pickObjet != null)
+            {
+                pickObjet.transform.position = puntoMAn.transform.position;
+                pickObjet.transform.rotation = puntoMAn.transform.rotation;
+            }
             return;
         }
 
         // Tomar con la tecla 'E'
-        if (Input.GetKeyDown(KeyCode.E) && pickObjet == null)
+        if (Input.GetKeyDown(KeyCode.E))
         {
             IntentarTomarObjeto();
         }
@@ -60,7 +71,7 @@ public class tomarYsoltar : MonoBehaviour
             }
         }
 
-        // Metodo 2: Por cercania (si estas cerca en el suelo y presionas E)
+        // Metodo 2: Por cercania (si estas cerca y presionas E)
         if (objetoEncontrado == null)
         {
             Collider[] cercanos = Physics.OverlapSphere(transform.position, distanciaMaxima);
@@ -74,7 +85,6 @@ public class tomarYsoltar : MonoBehaviour
             }
         }
 
-        // Si encontro el objeto, lo toma
         if (objetoEncontrado != null)
         {
             TomarObjeto(objetoEncontrado);
@@ -85,25 +95,28 @@ public class tomarYsoltar : MonoBehaviour
     {
         pickObjet = obj;
 
-        // Desactivar fisicas mientras lo llevamos
         Rigidbody rb = pickObjet.GetComponent<Rigidbody>();
         if (rb != null)
         {
-            rb.useGravity = false;
-            rb.isKinematic = true;
+            // Guardamos el estado original para restaurarlo al soltar
+            rbTeniaGravedad = rb.useGravity;
+            rbEraKinematic  = rb.isKinematic;
+
+            // Detenemos completamente el objeto antes de tomarlo
+            rb.linearVelocity        = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+            rb.useGravity      = false;
+            rb.isKinematic     = true;
         }
 
-        // Desactivar colisionador para que no empuje al jugador
+        // Desactivar colisionador para que no choque con el jugador
         Collider col = pickObjet.GetComponent<Collider>();
-        if (col != null)
-        {
-            col.enabled = false;
-        }
+        if (col != null) col.enabled = false;
 
-        // Ubicar en la mano manteniendo la escala correcta
-        pickObjet.transform.SetParent(puntoMAn.transform, true);
+        // Desvinculamos del padre anterior y reposicionamos en la mano
+        pickObjet.transform.SetParent(null);
         pickObjet.transform.position = puntoMAn.transform.position;
-        pickObjet.transform.localRotation = Quaternion.identity;
+        pickObjet.transform.rotation = puntoMAn.transform.rotation;
     }
 
     private void SoltarObjeto()
@@ -112,20 +125,18 @@ public class tomarYsoltar : MonoBehaviour
 
         // Reactivar colisionador
         Collider col = pickObjet.GetComponent<Collider>();
-        if (col != null)
-        {
-            col.enabled = true;
-        }
+        if (col != null) col.enabled = true;
 
-        // Reactivar gravedad y fisicas
         Rigidbody rb = pickObjet.GetComponent<Rigidbody>();
         if (rb != null)
         {
-            rb.useGravity = true;
-            rb.isKinematic = false;
+            // Restaurar estado original y resetear velocidad para que caiga limpio
+            rb.isKinematic     = rbEraKinematic;
+            rb.useGravity      = rbTeniaGravedad;
+            rb.linearVelocity        = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
         }
 
-        // Desvincular de la mano
         pickObjet.transform.SetParent(null);
         pickObjet = null;
     }
